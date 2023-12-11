@@ -36,6 +36,7 @@ tetro_probs_acc = {}
 tetro_probs_sum = 0
 
 state = {}
+ui = {}
 t = 0
 function love.load()
 	love.graphics.setFont(love.graphics.newFont(20))
@@ -45,7 +46,9 @@ function love.load()
 	board.height = (GAP_SIZE + BOARD_HEIGHT * (SQUARE_SIZE + GAP_SIZE)) * SCALE
 	board.x = width/2 - board.width/2
 	board.y = height/2 - board.height/2
+	ui.board = board
 
+	board = {}
 	board.cells = {}
 	for x=0, BOARD_WIDTH-1 do
 		local column = {}
@@ -61,8 +64,8 @@ function love.load()
 	score.height = height / 9
 	score.x = width/6 - score.width/2
 	score.y = height/2 - score.height/2
-	score.value = 0
-	state.score = score
+	ui.score = score
+	state.score = 0
 
 	state.t = 0
 	state.speed = 10
@@ -87,8 +90,8 @@ function love.load()
 	next.height = width / 6
 	next.x = 5 * width/6 - next.width/2
 	next.y = height/2 - next.height/2
-	next.value = rand_kind()
-	state.next = next
+	ui.next = next
+	state.next_kind = rand_kind()
 
 	state.game = GAME_PLAY
 	state.keys = 0
@@ -116,11 +119,11 @@ end
 
 function draw_board()
 	love.graphics.setColor(1, 1, 1)
-	love.graphics.rectangle("line", state.board.x, state.board.y, state.board.width, state.board.height)
+	love.graphics.rectangle("line", ui.board.x, ui.board.y, ui.board.width, ui.board.height)
 	for x=0, BOARD_WIDTH-1 do
 		for y=0, BOARD_HEIGHT-1 do
 			love.graphics.setColor(tetro_color(state.board.cells[x][y]))
-			draw_square(state.board, x, y)
+			draw_square(ui.board, x, y)
 		end
 	end
 end
@@ -279,8 +282,8 @@ function settle_tetro(tetro)
 end
 
 function new_tetro()
-	local kind = state.next.value
-	state.next.value = rand_kind()
+	local kind = state.next_kind
+	state.next_kind = rand_kind()
 	return { kind = kind, x = BOARD_WIDTH/2 - 1, y = 2, rot = 0 }
 end
 
@@ -457,7 +460,7 @@ function love.update(dt)
 	-- If not updated tetro position
 	if dx == 0 and dy == 0 and drot == 0 then
 		-- After some time not moving and on the floor, settle the tetro
-		if state.floor and state.floor_wait_time > 1/state.speed then
+		if state.floor and state.floor_wait_time > 1/2 then
 			print(state.floor_wait_time)
 			state.floor = false
 			settle_tetro(cur_tetro)
@@ -470,7 +473,7 @@ function love.update(dt)
 			if has_collision_tetro(state.cur_tetro, 0, 0, 0) > COLLIDE_NO then
 				game_over()
 			else
-				state.score.value = state.score.value + score
+				state.score = state.score + score
 			end
 		end
 	else
@@ -487,20 +490,20 @@ end
 function love.draw()
 	local width, height = love.graphics.getDimensions()
 	draw_board()
-	draw_tetro(state.board, state.cur_tetro)
+	draw_tetro(ui.board, state.cur_tetro)
 
 	-- Score board
-	local score = state.score
+	local score = ui.score
 	love.graphics.setColor(1, 1, 1)
 	love.graphics.rectangle("line", score.x, score.y, score.width, score.height)
-	love.graphics.print(score.value, score.x + 10, score.y + score.height/2 - 10)
+	love.graphics.print(state.score, score.x + 10, score.y + score.height/2 - 10)
 	love.graphics.print("score", score.x + 50, score.y + score.height + 10)
 
 	-- Next tetro
-	local next = state.next
+	local next = ui.next
 	love.graphics.setColor(1, 1, 1)
 	love.graphics.rectangle("line", next.x, next.y, next.width, next.height)
-	draw_tetro({x = next.x + 55, y = next.y + 40}, {x = 0, y = 0, rot = 0, kind = next.value})
+	draw_tetro({x = next.x + 55, y = next.y + 40}, {x = 0, y = 0, rot = 0, kind = state.next_kind})
 	love.graphics.print("next", next.x + 40, next.y + next.height + 10)
 
 	if state.game == GAME_OVER then
