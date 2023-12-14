@@ -37,7 +37,6 @@ tetro_probs_sum = 0
 
 state = {}
 ui = {}
-t = 0
 function love.load()
 	love.graphics.setFont(love.graphics.newFont(20))
 	local width, height = love.graphics.getDimensions()
@@ -68,13 +67,15 @@ function love.load()
 	state.score = 0
 
 	state.t = 0
-	state.speed = 10
+	state.speed = 1
 	state.cur_tetro = { kind = TET_L, x = BOARD_WIDTH/2 - 1, y = 2, rot = 0 }
 	state.floor = false
 	state.floor_wait_time = 0
 	state.repeat_key_time = 0
 	state.repeat_key_state = REPEAT_NONE
 	state.remain_tick = 1/state.speed
+
+	tetro_probs_sum = 0
 	for i=1, 7 do
 		local prob = tetro_probs[i]
 		tetro_probs_sum = tetro_probs_sum + prob
@@ -351,6 +352,9 @@ function love.update(dt)
 	state.t = state.t + dt
 	state.remain_tick = state.remain_tick - dt
 	if state.game == GAME_OVER then
+		if bit.band(state.keys, KEY_ROTL) ~= 0 then
+			love.load()
+		end
 		return
 	end
 	local cur_tetro = state.cur_tetro
@@ -394,7 +398,15 @@ function love.update(dt)
 			end
 		end
 	elseif bit.band(state.keys, KEY_UP) ~= 0 then
-		-- TODO: Move all the way to the floor
+		while (true) do
+			dy = dy + 1
+			if has_collision_tetro(cur_tetro, dx, dy, drot) > COLLIDE_NO then
+				dy = dy - 1
+				break
+			end
+		end
+		state.floor = true
+		state.floor_wait_time = 999
 	end
 	if bit.band(state.keys, KEY_RIGHT) ~= 0 then
 		key_dir = true
@@ -466,6 +478,7 @@ function love.update(dt)
 			settle_tetro(cur_tetro)
 			score = check_floor(cur_tetro)
 			state.cur_tetro = new_tetro(cur_tetro)
+			state.keys = bit.band(state.keys, bit.bnot(KEY_UP))
 			state.keys = bit.band(state.keys, bit.bnot(KEY_DOWN))
 			state.keys = bit.band(state.keys, bit.bnot(KEY_LEFT))
 			state.keys = bit.band(state.keys, bit.bnot(KEY_RIGHT))
@@ -504,17 +517,16 @@ function love.draw()
 	love.graphics.setColor(1, 1, 1)
 	love.graphics.rectangle("line", next.x, next.y, next.width, next.height)
 	draw_tetro({x = next.x + 55, y = next.y + 40}, {x = 0, y = 0, rot = 0, kind = state.next_kind})
+	love.graphics.setColor(1, 1, 1)
 	love.graphics.print("next", next.x + 40, next.y + next.height + 10)
 
 	if state.game == GAME_OVER then
 		love.graphics.setColor(0, 0, 0)
-		love.graphics.rectangle("fill", width/2 - 80, height/2 - 30, 160, 60)
+		love.graphics.rectangle("fill", width/2 - 90, height/2 - 60, 180, 120)
 		love.graphics.setColor(1, 1, 1)
-		love.graphics.rectangle("line", width/2 - 80, height/2 - 30, 160, 60)
-		love.graphics.print("GAME OVER", width/2 - 60, height/2 - 10)
+		love.graphics.rectangle("line", width/2 - 90, height/2 - 60, 180, 120)
+		love.graphics.print("Game Over", width/2 - 60, height/2 - 50)
+		love.graphics.print("Press Z to start", width/2 - 75, height/2)
+		love.graphics.print("a new game", width/2 - 60, height/2 + 20)
 	end
-	-- draw_tetro(3, 3, 0, TET_O)
-	-- draw_tetro(3, 7, 1, TET_S)
-	-- draw_tetro(3, 11, 2, TET_Z)
-	-- draw_tetro(3, 15, 3, TET_T)
 end
