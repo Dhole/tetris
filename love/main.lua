@@ -99,6 +99,22 @@ function love.load()
 	-- love.keyboard.setKeyRepeat(true)
 end
 
+function speed_by_score(score)
+	if score < 20 then
+		return 1
+	elseif score < 40 then
+		return 2
+	elseif score < 60 then
+		return 4
+	elseif score < 80 then
+		return 8
+	elseif score < 100 then
+		return 10
+	else
+		return 20
+	end
+end
+
 function draw_square(board, x, y)
 	local square_x = (GAP_SIZE + x * (SQUARE_SIZE + GAP_SIZE)) * SCALE
 	local square_y = (GAP_SIZE + y * (SQUARE_SIZE + GAP_SIZE)) * SCALE
@@ -288,6 +304,8 @@ function new_tetro()
 	return { kind = kind, x = BOARD_WIDTH/2 - 1, y = 2, rot = 0 }
 end
 
+points_by_cleared_count = {0,1,3,5,10}
+
 function check_floor(tetro)
 	local dxys = tetro_dxys(tetro.kind, tetro.rot)
 	local x, y = tetro.x, tetro.y
@@ -316,7 +334,7 @@ function check_floor(tetro)
 			table.insert(cleared_rows, y)
 		end
 	end
-	print(cleared_rows[1], cleared_rows[2], cleared_rows[3], cleared_rows[4])
+	-- print(cleared_rows[1], cleared_rows[2], cleared_rows[3], cleared_rows[4])
 	local cleared_count = 0
 	for _, row in ipairs(cleared_rows) do
 		for y = row+cleared_count, cleared_count, -1 do
@@ -331,17 +349,7 @@ function check_floor(tetro)
 			cells[x][y] = 0
 		end
 	end
-	if cleared_count == 4 then
-		return 10
-	elseif cleared_count == 3 then
-		return 5
-	elseif cleared_count == 2 then
-		return 3
-	elseif cleared_count == 1 then
-		return 1
-	else
-		return 0
-	end
+	return points_by_cleared_count[cleared_count+1]
 end
 
 function game_over()
@@ -473,7 +481,7 @@ function love.update(dt)
 	if dx == 0 and dy == 0 and drot == 0 then
 		-- After some time not moving and on the floor, settle the tetro
 		if state.floor and state.floor_wait_time > 1/2 then
-			print(state.floor_wait_time)
+			-- print(state.floor_wait_time)
 			state.floor = false
 			settle_tetro(cur_tetro)
 			score = check_floor(cur_tetro)
@@ -487,6 +495,7 @@ function love.update(dt)
 				game_over()
 			else
 				state.score = state.score + score
+				state.speed = speed_by_score(state.score)
 			end
 		end
 	else
